@@ -1,9 +1,11 @@
 import sys
 from PyQt6.QtWidgets import (
      QApplication, QMainWindow, QWidget, QListWidget, 
-     QHBoxLayout, QPushButton)
+     QHBoxLayout, QPushButton, QVBoxLayout,
+     QInputDialog, QLineEdit, QTabWidget)
 import database
 from connection_dialog import ConnectionDialog
+from ssh_tab import SSHTab
 
 app = QApplication(sys.argv)
 database.init_db()
@@ -21,25 +23,55 @@ window.setCentralWidget(central)
 layout = QHBoxLayout(central)
 
 # Sidebar
+sidebar_container = QWidget()
+sidebar_container.setMaximumWidth(250)
+sidebar_layout = QVBoxLayout(sidebar_container)
+sidebar_layout.setContentsMargins(0, 0, 0, 0)
+sidebar_layout.setSpacing(4)
+
+# Connection List
 sidebar = QListWidget()
-sidebar.setMaximumWidth(250)
 
 # Load from database 
 connections = database.get_all_connections()
 for c in connections:
     sidebar.addItem(c["name"])
 
-# Right panel
-right_panel = QWidget()
+# Add button
+add_btn = QPushButton("+ Add")
 
-layout.addWidget(sidebar)
-layout.addWidget(right_panel)
+# Add list and button into sidebar_layout
+sidebar_layout.addWidget(sidebar)
+sidebar_layout.addWidget(add_btn)
+
+
+# Right panel
+tabs = QTabWidget()
+tabs.setTabsClosable(True)
+tabs.setMinimumWidth(600)
+tabs.tabCloseRequested.connect(lambda index: tabs.removeTab(index))
+
+
+layout.addWidget(sidebar_container)
+layout.addWidget(tabs)
 
 def on_connection_clicked(item):
-    print(f"Clicked: {item.text()}")
-    print(f"Row: {sidebar.row(item)}")
+    index = sidebar.row(item)
+    connection = connections[index]
+    if connection["type"] == "ssh":
+        password, ok = QInputDialog.getText(
+            window,
+            "Password",
+            f"Password for {connection['username']}@{connection['host']}:",
+            QLineEdit.EchoMode.Password
+        )
+        if ok:
+            tab = SSHTab(connection, password)
+            tab_index = tabs.addTab(tab, connection["name"])
+            tabs.setCurrentIndex(tab_index)
 
 sidebar.itemClicked.connect(on_connection_clicked)
+
 
 def open_add_dialog():
     dlg = ConnectionDialog(window)
@@ -55,9 +87,9 @@ def open_add_dialog():
         for c in connections:
             sidebar.addItem(c["name"])
 
-add_btn = QPushButton("+ Add")
+
 add_btn.clicked.connect(open_add_dialog)
-layout.addWidget(add_btn)
+
 
 window.show()
 sys.exit(app.exec())
