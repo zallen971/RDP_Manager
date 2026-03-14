@@ -1,11 +1,12 @@
 import sys
 from PyQt6.QtWidgets import (
-     QApplication, QMainWindow, QWidget, QListWidget, QHBoxLayout
-)
-
+     QApplication, QMainWindow, QWidget, QListWidget, 
+     QHBoxLayout, QPushButton)
 import database
+from connection_dialog import ConnectionDialog
 
 app = QApplication(sys.argv)
+database.init_db()
 
 window = QMainWindow()
 window.setWindowTitle("PyRDM")
@@ -39,6 +40,24 @@ def on_connection_clicked(item):
     print(f"Row: {sidebar.row(item)}")
 
 sidebar.itemClicked.connect(on_connection_clicked)
+
+def open_add_dialog():
+    dlg = ConnectionDialog(window)
+    if dlg.exec():
+        values = dlg.get_values()
+        database.add_connection(
+            values["name"], values["type"], values["host"],
+            values["port"], values["username"]
+        )
+        sidebar.clear()
+        connections.clear()
+        connections.extend(database.get_all_connections())
+        for c in connections:
+            sidebar.addItem(c["name"])
+
+add_btn = QPushButton("+ Add")
+add_btn.clicked.connect(open_add_dialog)
+layout.addWidget(add_btn)
 
 window.show()
 sys.exit(app.exec())
