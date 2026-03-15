@@ -6,6 +6,9 @@ from PyQt6.QtWidgets import (
 import database
 from connection_dialog import ConnectionDialog
 from ssh_tab import SSHTab
+from rdp_launcher import launch_rdp
+import credentials
+
 
 app = QApplication(sys.argv)
 database.init_db()
@@ -35,7 +38,8 @@ sidebar = QListWidget()
 # Load from database 
 connections = database.get_all_connections()
 for c in connections:
-    sidebar.addItem(c["name"])
+    icon = "🖥 " if c["type"] == "rdp" else "🖵 "
+    sidebar.addItem(icon + c["name"])
 
 # Add button
 add_btn = QPushButton("+ Add")
@@ -58,17 +62,32 @@ layout.addWidget(tabs)
 def on_connection_clicked(item):
     index = sidebar.row(item)
     connection = connections[index]
-    if connection["type"] == "ssh":
+
+    password = credentials.get_password(connection["id"])
+    print(f"Retrieved password for ID {connection['id']}: {password is not None}")
+
+    if not password:
         password, ok = QInputDialog.getText(
             window,
             "Password",
             f"Password for {connection['username']}@{connection['host']}:",
             QLineEdit.EchoMode.Password
         )
-        if ok:
-            tab = SSHTab(connection, password)
-            tab_index = tabs.addTab(tab, connection["name"])
-            tabs.setCurrentIndex(tab_index)
+        if not ok:
+            return
+
+
+    if connection["type"] == "ssh":
+        tab = SSHTab(connection, password)
+        tab_index = tabs.addTab(tab, connection["name"])
+        tabs.setCurrentIndex(tab_index)
+
+    elif connection["type"] == "rdp":
+        success, message = launch_rdp(connection, password)
+        if not success:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(window, "RDP Error", message)
+
 
 sidebar.itemClicked.connect(on_connection_clicked)
 
@@ -77,15 +96,21 @@ def open_add_dialog():
     dlg = ConnectionDialog(window)
     if dlg.exec():
         values = dlg.get_values()
-        database.add_connection(
+        conn_id = database.add_connection(
             values["name"], values["type"], values["host"],
             values["port"], values["username"]
         )
+        if values["save_password"] and values["password"]:
+            credentials.save_password(conn_id, values["password"])
+            print(f"Saved! ID={conn_id}, password length={len(values['password'])}")
+        else:
+            print(f"Password not saved. save_password={values['save_password']}, password empty={not values['password']}")
         sidebar.clear()
         connections.clear()
         connections.extend(database.get_all_connections())
         for c in connections:
-            sidebar.addItem(c["name"])
+            icon = "🖥 " if c["type"] == "rdp" else "🖵 "
+            sidebar.addItem(icon + c["name"])
 
 
 add_btn.clicked.connect(open_add_dialog)

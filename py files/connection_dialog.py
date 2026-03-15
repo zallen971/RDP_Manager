@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox,
-    QSpinBox, QDialogButtonBox
+    QSpinBox, QDialogButtonBox, QCheckBox
 )
 
 class ConnectionDialog(QDialog):
@@ -36,6 +36,16 @@ class ConnectionDialog(QDialog):
         self.username_edit = QLineEdit()
         form.addRow("Username", self.username_edit)
 
+
+        self.save_password_check = QCheckBox("Save password to keychain")
+        self.save_password_check.setChecked(True)
+        form.addRow("", self.save_password_check)
+
+        self.password_edit = QLineEdit()
+        self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_edit.setPlaceholderText("Leave blank to enter on connect")
+        form.addRow("Password", self.password_edit)
+
         layout.addLayout(form)
 
         buttons = QDialogButtonBox (
@@ -56,5 +66,7 @@ class ConnectionDialog(QDialog):
             "host": self.host_edit.text().strip(),
             "port": self.port_spin.value(),
             "username": self.username_edit.text().strip(),
+            "password": self.password_edit.text(),
+            "save_password": self.save_password_check.isChecked(),
         }
     

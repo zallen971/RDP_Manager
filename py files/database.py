@@ -34,11 +34,12 @@ def get_all_connections():
 
 def add_connection(name, type_, host, port, username):
     conn = get_db()
-    conn.execute(
+    cursor = conn.execute(
         "INSERT INTO connections (name, type, host, port, username) VALUES (?, ?, ?, ?, ?)",
         (name, type_, host, port, username)
     )
     conn.commit()
+    new_id = cursor.lastrowid
     conn.close()
 
 if __name__ == "__main__":
