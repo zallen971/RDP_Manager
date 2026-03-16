@@ -81,6 +81,15 @@ def add_group(name):
     conn.close()
     return new_id
 
+def update_connection_group(conn_id, group_id):
+    conn = get_db()
+    conn.execute(
+        "UPDATE connections SET group_id=? WHERE id=?",
+        (group_id, conn_id)
+    )
+    conn.commit()
+    conn.close()
+
 def delete_group(group_id):
     conn = get_db()
     conn.execute("UPDATE connections SET group_id = NULL WHERE group_id = ?", (group_id,))

@@ -10,6 +10,7 @@ from connection_dialog import ConnectionDialog
 from ssh_tab import SSHTab
 from rdp_launcher import launch_rdp
 import credentials
+from sidebar import SidebarTree
 
 app = QApplication(sys.argv)
 database.init_db()
@@ -30,7 +31,7 @@ sidebar_layout = QVBoxLayout(sidebar_container)
 sidebar_layout.setContentsMargins(0, 0, 0, 0)
 sidebar_layout.setSpacing(4)
 
-sidebar = QTreeWidget()
+sidebar = SidebarTree()
 sidebar.setHeaderHidden(True)
 sidebar.setDragEnabled(True)
 sidebar.setAcceptDrops(True)
@@ -202,35 +203,17 @@ def open_add_group_dialog():
         database.add_group(name.strip())
         refresh_sidebar()
 
-def on_rows_moved(parent, start, end, destination,dest_row):
-    # Find the item that moved and update its group in the database
-    dest_item = sidebar.itemFromIndex(destination)
-    moved_item = sidebar.invisibleRootItem().child(start) if not parent.isValid() else sidebar.itemFromIndex(parent).child(start)
-    print(f"Moving Connection ID {data['id']} to group {dest_data['id'] if dest_item and dest_data else None}")
-
-    if not moved_item:
-        refresh_sidebar()
-        return
-    
-    data = moved_item.data(0, Qt.ItemDataRole.UserRole)
-    if not data or data["_type"] != "connection":
-        refresh_sidebar()
-        return
-    
-    if dest_item:
-        dest_data = dest_item.data(0, Qt.ItemDataRole.UserRole)
-        if dest_data and dest_data["_type"] == "group":
-            database.update_connection_group(data["id"], None)
-    else:
-        database.update_connection_group(data["id"], None)
-    
+def on_item_dropped(conn_id, new_group_id):
+    database.update_connection_group(conn_id, new_group_id)
+    print(f"Saved connection {conn_id} to group {new_group_id}")
     refresh_sidebar()
 
 
 sidebar.itemDoubleClicked.connect(on_connection_clicked)
 sidebar.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 sidebar.customContextMenuRequested.connect(show_context_menu)
-sidebar.model().rowsMoved.connect(on_rows_moved)
+sidebar.item_dropped.connect(on_item_dropped)
+
 add_btn.clicked.connect(open_add_dialog)
 add_group_btn.clicked.connect(open_add_group_dialog)
 
