@@ -4,11 +4,14 @@ from PyQt6.QtWidgets import (
 )
 
 class ConnectionDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, connection=None):
         super().__init__(parent)
-        self.setWindowTitle("New Connection")
+        self.connection = connection
+        self.setWindowTitle("Edit Connection" if connection else "New Connection")
         self.setMinimumWidth(350)
         self._build_ui()
+        if connection:
+            self.populate(connection)
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -69,4 +72,13 @@ class ConnectionDialog(QDialog):
             "password": self.password_edit.text(),
             "save_password": self.save_password_check.isChecked(),
         }
+    
+    def _populate(self, c):
+        self.name_edit.setText(c["name"])
+        idx = self.type_combo.findText(c["type"])
+        if idx >= 0:
+            self.type_combo.setCurrentindex(idx)
+        self.host_edit.setText(c["host"])
+        self.port_spin.setValue(c["port"])
+        self.username_edit.setText(c["username"] or "")
     
