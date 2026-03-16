@@ -93,6 +93,7 @@ def update_connection_group(conn_id, group_id):
 def delete_group(group_id):
     conn = get_db()
     conn.execute("UPDATE connections SET group_id = NULL WHERE group_id = ?", (group_id,))
+    conn.execute("DELETE FROM groups WHERE id = ?", (group_id,))
     conn.commit()
     conn.close()
 
