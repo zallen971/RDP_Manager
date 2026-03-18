@@ -50,11 +50,11 @@ def get_all_connections():
     conn.close()
     return [dict(r) for r in rows]
 
-def add_connection(name, type_, host, port, username):
+def add_connection(name, type_, host, port, username, group_id=None):
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO connections (name, type, host, port, username) VALUES (?, ?, ?, ?, ?)",
-        (name, type_, host, port, username)
+        "INSERT INTO connections (name, type, host, port, username, group_id) VALUES (?, ?, ?, ?, ?, ?)",
+        (name, type_, host, port, username, group_id)
     )
     conn.commit()
     new_id = cursor.lastrowid

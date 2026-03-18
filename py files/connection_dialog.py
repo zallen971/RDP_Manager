@@ -2,11 +2,13 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox,
     QSpinBox, QDialogButtonBox, QCheckBox
 )
+import database
 
 class ConnectionDialog(QDialog):
     def __init__(self, parent=None, connection=None):
         super().__init__(parent)
         self.connection = connection
+        self.groups = database.get_all_groups()
         self.setWindowTitle("Edit Connection" if connection else "New Connection")
         self.setMinimumWidth(350)
         self._build_ui()
@@ -26,6 +28,12 @@ class ConnectionDialog(QDialog):
         self.type_combo.addItems(["ssh", "rdp"])
         self.type_combo.currentTextChanged.connect(self._on_type_changed)
         form.addRow("Type", self.type_combo)
+
+        self.group_combo = QComboBox()
+        self.group_combo.addItem("(none)", None)
+        for g in self.groups:
+            self.group_combo.addItem(g["name"], g["id"])
+        form.addRow("Group", self.group_combo)
 
         self.host_edit = QLineEdit()
         self.host_edit.setPlaceholderText("192.168.1.1")
@@ -71,6 +79,7 @@ class ConnectionDialog(QDialog):
             "username": self.username_edit.text().strip(),
             "password": self.password_edit.text(),
             "save_password": self.save_password_check.isChecked(),
+            "group_id": self.group_combo.currentData()
         }
     
     def _populate(self, c):
@@ -81,4 +90,9 @@ class ConnectionDialog(QDialog):
         self.host_edit.setText(c["host"])
         self.port_spin.setValue(c["port"])
         self.username_edit.setText(c["username"] or "")
+        if c.get("group_id"):
+            for i in range(self.group_combo.count()):
+                if self.group_combo.itemData(i) == c["group_id"]:
+                    self.group_combo.setCurrentIndex(i)
+                    break
     
